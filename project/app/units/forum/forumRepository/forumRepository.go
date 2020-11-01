@@ -17,7 +17,7 @@ type ForumRepository struct {
 	DB *sql.DB
 }
 
-func (r ForumRepository) Create(forum *models.Forum) error {
-
-
-}
+//func (r ForumRepository) Create(forum *models.Forum) error {
+//
+//
+//}

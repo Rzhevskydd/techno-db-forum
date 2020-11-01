@@ -3,9 +3,10 @@ package app
 import (
 	"database/sql"
 	"fmt"
-	"github.com/Rzhevskydd/techno-db-forum/project/app/units/forum/delivery"
+	"github.com/Rzhevskydd/techno-db-forum/project/app/units"
 	userDelivery "github.com/Rzhevskydd/techno-db-forum/project/app/units/user/delivery"
 	"github.com/gorilla/mux"
+	_ "github.com/lib/pq"
 	"log"
 	"net/http"
 	"time"
@@ -39,12 +40,6 @@ func (a *App) Initialize(cfg Config) {
 		log.Fatal(err)
 	}
 
-	defer func() {
-		if err := a.DB.Close(); err != nil {
-			log.Fatal(err)
-		}
-	}()
-
 	a.DB.SetMaxOpenConns(100)
 	a.DB.SetMaxIdleConns(30)
 	a.DB.SetConnMaxLifetime(time.Hour)
@@ -55,18 +50,24 @@ func (a *App) Initialize(cfg Config) {
 }
 
 func (a *App) Run(addr string) {
+	defer func() {
+		if err := a.DB.Close(); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
 	log.Fatal(http.ListenAndServe(addr, a.Router))
 }
 
 func (a *App) initializeApplication() {
-	repos := NewRepositories(a.DB)
-	useCase := NewUseCase(repos)
+	repos := units.NewRepositories(a.DB)
+	useCase := units.NewUseCase(repos)
 
 	userRouter := a.Router.PathPrefix("/user").Subrouter()
 	userDelivery.HandleUserRoutes(userRouter, useCase)
 
-	forumRouter := a.Router.PathPrefix("/forum").Subrouter()
-	forumDelivery.HandleForumRoutes(forumRouter, useCase)
+	//forumRouter := a.Router.PathPrefix("/forum").Subrouter()
+	//forumDelivery.HandleForumRoutes(forumRouter, useCase)
 	//userRouter := a.Router.PathPrefix("/user").Subrouter()
 	//threadRouter := a.Router.PathPrefix("/thread").Subrouter()
 	//postRouter := a.Router.PathPrefix("/post").Subrouter()

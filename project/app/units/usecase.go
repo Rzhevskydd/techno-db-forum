@@ -1,4 +1,4 @@
-package app
+package units
 
 import (
 	f "github.com/Rzhevskydd/techno-db-forum/project/app/units/forum/usecase"
@@ -10,9 +10,9 @@ type UseCase struct {
 	Forum f.ForumUseCase
 }
 
-func NewUseCase(repos *Repositories) *UseCase{
+func NewUseCase(repos *Repositories) *UseCase {
 	return &UseCase{
-		User:  u.UserUseCase{Repos: *repos},
-		Forum: f.ForumUseCase{Repos: *repos},
+		User:  u.UserUseCase{UserRep: repos.User},
+		Forum: f.ForumUseCase{UserRep: repos.User},
 	}
 }

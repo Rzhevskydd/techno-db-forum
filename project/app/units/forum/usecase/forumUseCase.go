@@ -1,10 +1,9 @@
 package forumUsecase
 
 import (
-	"github.com/Rzhevskydd/techno-db-forum/project/app/app"
 	"github.com/Rzhevskydd/techno-db-forum/project/app/models"
+	u "github.com/Rzhevskydd/techno-db-forum/project/app/units/user/repository"
 	"net/url"
-	"runtime"
 )
 
 type IForumUseCase interface {
@@ -15,12 +14,13 @@ type IForumUseCase interface {
 }
 
 type ForumUseCase struct {
-	Repos app.Repositories
+	UserRep u.UserRepository
+
 }
 
-func (f *ForumUseCase) CreateForum(forum *models.Forum) error {
-
-	//return runtime.RuntimeError()
-}
+//func (f *ForumUseCase) CreateForum(forum *models.Forum) error {
+//
+//	//return runtime.RuntimeError()
+//}
 
 

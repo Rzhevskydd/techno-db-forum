@@ -1,10 +1,9 @@
 package userUseCase
 
 import (
-	"github.com/Rzhevskydd/techno-db-forum/project/app/app"
 	"github.com/Rzhevskydd/techno-db-forum/project/app/models"
-	"net/url"
-	"runtime"
+	u "github.com/Rzhevskydd/techno-db-forum/project/app/units/user/repository"
+	"github.com/Rzhevskydd/techno-db-forum/project/app/utils/validator"
 )
 
 type IUserUseCase interface {
@@ -14,11 +13,11 @@ type IUserUseCase interface {
 }
 
 type UserUseCase struct {
-	Repos app.Repositories
+	UserRep u.UserRepository
 }
 
 func (u *UserUseCase) CreateUser(user *models.User) (models.Users, error) {
-	users, err := u.Repos.User.GetAll(user.Nickname, user.Email)
+	users, err := u.UserRep.GetAll(user.Nickname, user.Email)
 	if err != nil {
 		return nil, err
 	}
@@ -27,26 +26,48 @@ func (u *UserUseCase) CreateUser(user *models.User) (models.Users, error) {
 		return users, nil
 	}
 
-	if err = u.Repos.User.Create(user); err != nil {
+	if err = u.UserRep.Create(user); err != nil {
 		return nil, err
 	}
 
 	users = append(users, *user)
-	return users, nil
+	return nil, nil
 }
 
 func (u *UserUseCase) GetUser(nickname string) (*models.User, error) {
-	user, err := u.Repos.User.Get(nickname)
-	if err != nil {
-		return nil, err
-	}
-	return user, nil
+	return u.UserRep.Get(nickname)
 }
 
 func (u *UserUseCase) UpdateUser(user *models.User) (*models.User, error) {
+	dbUser, err := u.UserRep.Get(user.Nickname)
 
+	if err != nil {
+		return nil, err
+	}
 
-	//return runtime.RuntimeError()
+	if dbUser == nil {
+		return dbUser, err
+	}
+
+	// TODO валидаторы (через регулярки)
+
+	if validator.IsEmpty(user.Email) {
+		user.Email = dbUser.Email
+	}
+
+	if validator.IsEmpty(user.FullName) {
+		user.FullName = dbUser.FullName
+	}
+
+	if validator.IsEmpty(user.About) {
+		user.About = dbUser.About
+	}
+
+	if err = u.UserRep.Update(user); err != nil {
+		return dbUser, err
+	}
+
+	return user, nil
 }
 
 

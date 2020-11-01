@@ -7,13 +7,13 @@ import (
 func main() {
 	// TODO аргументы командной строки
 	cfg := app.Config{
-		Port:   "",
+		Port:   "5000",
 		Addr:   "",
-		DbHost: "",
-		DbName: "",
-		DbPort: "",
-		DbUser: "",
-		DbPwd:  "",
+		DbHost: "localhost",
+		DbName: "forum",
+		DbPort: "5432",
+		DbUser: "danil",
+		DbPwd:  "password",
 	}
 
 	a := app.App{}
