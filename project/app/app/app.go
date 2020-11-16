@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/Rzhevskydd/techno-db-forum/project/app/units"
+	forumDelivery "github.com/Rzhevskydd/techno-db-forum/project/app/units/forum/delivery"
 	userDelivery "github.com/Rzhevskydd/techno-db-forum/project/app/units/user/delivery"
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
@@ -66,8 +67,8 @@ func (a *App) initializeApplication() {
 	userRouter := a.Router.PathPrefix("/user").Subrouter()
 	userDelivery.HandleUserRoutes(userRouter, useCase)
 
-	//forumRouter := a.Router.PathPrefix("/forum").Subrouter()
-	//forumDelivery.HandleForumRoutes(forumRouter, useCase)
+	forumRouter := a.Router.PathPrefix("/forum").Subrouter()
+	forumDelivery.HandleForumRoutes(forumRouter, useCase)
 	//userRouter := a.Router.PathPrefix("/user").Subrouter()
 	//threadRouter := a.Router.PathPrefix("/thread").Subrouter()
 	//postRouter := a.Router.PathPrefix("/post").Subrouter()

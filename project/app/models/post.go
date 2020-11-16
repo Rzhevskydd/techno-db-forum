@@ -13,3 +13,5 @@ type Post struct {
 	//Childs        Posts   `json:"childs,omitempty"`
 	//ParentPointer *Post   `json:"-"`
 }
+
+type Posts []Post

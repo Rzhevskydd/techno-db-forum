@@ -4,31 +4,114 @@ import (
 	"encoding/json"
 	"github.com/Rzhevskydd/techno-db-forum/project/app/models"
 	"github.com/Rzhevskydd/techno-db-forum/project/app/units"
-	"github.com/Rzhevskydd/techno-db-forum/project/app/units/forum/usecase"
+	f "github.com/Rzhevskydd/techno-db-forum/project/app/units/forum/usecase"
 	"github.com/Rzhevskydd/techno-db-forum/project/app/utils/delivery"
 	"github.com/gorilla/mux"
 	"net/http"
 )
 
 type ApiForumHadler struct {
-	ForumUseCase forumUsecase.ForumUseCase
-}
-
-func HandleForumRoutes(m *mux.Router, u *units.UseCase) {
-	handler := ApiForumHadler{ForumUseCase: forumUsecase.ForumUseCase{}}
-
-	m.HandleFunc("/create", handler.ForumCreateHandler).Methods(http.MethodPost, http.MethodOptions)
+	Forum f.ForumUseCase
 
 }
 
-func (h *ApiForumHadler) ForumCreateHandler(w http.ResponseWriter, r *http.Request) {
+func HandleForumRoutes(m *mux.Router, use *units.UseCase) {
+	api := ApiForumHadler{Forum: use.Forum}
+
+	m.HandleFunc("/create", api.ForumCreateHandler).Methods(http.MethodPost, http.MethodOptions)
+	m.HandleFunc("/{slug}/create", api.ForumThreadCreateHandler).Methods(http.MethodPost, http.MethodOptions)
+	m.HandleFunc("/{slug}/details", api.ForumDetailsHandler).Methods(http.MethodGet)
+	m.HandleFunc("/{slug}/threads", api.ForumGetThreadssHandler).Methods(http.MethodGet)
+
+
+}
+
+func (api *ApiForumHadler) ForumCreateHandler(w http.ResponseWriter, r *http.Request) {
 	defer delivery.CloseBody(w, r)
+
+	w.Header().Set("Content-Type", "application/json")
 
 	in := new(models.Forum)
 	if err := json.NewDecoder(r.Body).Decode(in); err != nil {
 		delivery.NewError(w, http.StatusBadRequest, err.Error())
 	}
 
-	h.ForumUseCase.CreateForum(in)
+	forum, code := api.Forum.CreateForum(in)
 
+	switch code {
+	case 201:
+		delivery.ResponseJson(w, http.StatusCreated, forum)
+		return
+	case 500:
+		delivery.NewError(w, http.StatusInternalServerError, "Internal error")
+		return
+	case 404:
+		delivery.NewError(w, http.StatusNotFound, "Can't find user with nickname: " + forum.User)
+		return
+	case 409:
+		delivery.ResponseJson(w, http.StatusConflict, forum)
+		return
+	}
+}
+
+func (api *ApiForumHadler) ForumThreadCreateHandler(w http.ResponseWriter, r *http.Request) {
+	defer delivery.CloseBody(w, r)
+	w.Header().Set("Content-Type", "application/json")
+
+	vars := mux.Vars(r)
+
+	in := new(models.Thread)
+	if err := json.NewDecoder(r.Body).Decode(in); err != nil {
+		delivery.NewError(w, http.StatusBadRequest, err.Error())
+	}
+
+	slug := vars["slug"]
+	newThread, code := api.Forum.CreateForumThread(in, slug)
+
+	switch code {
+	case 201:
+		delivery.ResponseJson(w, http.StatusCreated, newThread)
+		return
+	case 500:
+		delivery.NewError(w, http.StatusInternalServerError, "Internal error")
+		return
+	case 404:
+		delivery.NewError(w, http.StatusNotFound, "Can't find user with nickname: " + newThread.Author)
+		return
+	case 409:
+		delivery.ResponseJson(w, http.StatusConflict, newThread)
+		return
+	}
+}
+
+func (api *ApiForumHadler) ForumDetailsHandler(w http.ResponseWriter, r *http.Request) {
+	defer delivery.CloseBody(w, r)
+	w.Header().Set("Content-Type", "application/json")
+
+	vars := mux.Vars(r)
+	slug := vars["slug"]
+	forum, err := api.Forum.GetForum(slug)
+
+	if forum == nil || err != nil {
+		delivery.NewError(w, http.StatusNotFound, "Can't find forum with slug: " + slug)
+		return
+	}
+
+	delivery.ResponseJson(w, http.StatusOK, forum)
+}
+
+func (api *ApiForumHadler) ForumGetThreadssHandler(w http.ResponseWriter, r *http.Request) {
+	defer delivery.CloseBody(w, r)
+	w.Header().Set("Content-Type", "application/json")
+
+	vars := mux.Vars(r)
+	slug := vars["slug"]
+
+	threads, err := api.Forum.GetForumThreads(slug, r.URL.Query())
+	if err != nil {
+		delivery.NewError(w, http.StatusNotFound, "Can't find thread with slug: " + slug)
+		return
+	}
+
+	delivery.ResponseJson(w, http.StatusOK, threads)
 }
