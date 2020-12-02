@@ -1,18 +1,17 @@
-package forumDelivery
+package postDelivery
 
 import (
 	"encoding/json"
 	"github.com/Rzhevskydd/techno-db-forum/project/app/models"
 	"github.com/Rzhevskydd/techno-db-forum/project/app/units"
-	f "github.com/Rzhevskydd/techno-db-forum/project/app/units/forum/usecase"
+	p "github.com/Rzhevskydd/techno-db-forum/project/app/units/post/usecase"
 	"github.com/Rzhevskydd/techno-db-forum/project/app/utils/delivery"
 	"github.com/gorilla/mux"
 	"net/http"
 )
 
-type ApiForumHadler struct {
-	Forum f.ForumUseCase
-
+type ApiPostHadler struct {
+	Post p.PostUseCase
 }
 
 func HandleForumRoutes(m *mux.Router, use *units.UseCase) {

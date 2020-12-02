@@ -2,7 +2,7 @@ package units
 
 import (
 	"database/sql"
-	f "github.com/Rzhevskydd/techno-db-forum/project/app/units/forum/forumRepository"
+	f "github.com/Rzhevskydd/techno-db-forum/project/app/units/forum/repository"
 	u "github.com/Rzhevskydd/techno-db-forum/project/app/units/user/repository"
 	t"github.com/Rzhevskydd/techno-db-forum/project/app/units/thread/repository"
 

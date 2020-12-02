@@ -9,7 +9,7 @@ type Post struct {
 	Created       string  `json:"created,omitempty"`
 	IsEdited      bool    `json:"isEdited"`
 	Message       string  `json:"message"`
-	//Path          []int64 `json:"-"`
+	Path          []int64 `json:"-"`
 	//Childs        Posts   `json:"childs,omitempty"`
 	//ParentPointer *Post   `json:"-"`
 }

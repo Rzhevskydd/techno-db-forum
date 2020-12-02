@@ -1,26 +1,21 @@
-package forumUsecase
+package postUsecase
 
 import (
 	"github.com/Rzhevskydd/techno-db-forum/project/app/models"
-	f "github.com/Rzhevskydd/techno-db-forum/project/app/units/forum/repository"
-	t "github.com/Rzhevskydd/techno-db-forum/project/app/units/thread/repository"
-	u "github.com/Rzhevskydd/techno-db-forum/project/app/units/user/repository"
+	p "github.com/Rzhevskydd/techno-db-forum/project/app/units/post/repository"
 	"net/url"
 )
 
-type IForumUseCase interface {
-	CreateForum(forum *models.Forum) (*models.Forum, int)
-	GetForum(slug string) (*models.Forum, error)
-	GetForumUsers(slug string, params url.Values) (models.Users, error)
-	GetForumThreads(slug string, params url.Values) (models.Threads, error)
-	CreateForumThread(thread *models.Thread, slug string) (*models.Thread, int, error)
+type IPostUseCase interface {
+	CreatePosts(posts *models.Posts) (*models.Posts, int)
+	//GetForum(slug string) (*models.Forum, error)
+	//GetForumUsers(slug string, params url.Values) (models.Users, error)
+	//GetForumThreads(slug string, params url.Values) (models.Threads, error)
+	//CreateForumThread(thread *models.Thread, slug string) (*models.Thread, int, error)
 }
 
-type ForumUseCase struct {
-	ForumRep f.ForumRepository
-	UserRep u.UserRepository
-	ThreadRep t.ThreadRepository
-
+type PostUseCase struct {
+	PostRep p.PostRepository
 }
 
 func (f *ForumUseCase) CreateForum(forum *models.Forum) (*models.Forum, int) {

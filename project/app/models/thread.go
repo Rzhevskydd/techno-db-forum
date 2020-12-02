@@ -12,3 +12,8 @@ type Thread struct {
 }
 
 type Threads []Thread
+
+type ThreadUpdate struct {
+	Message string `json:"message"`
+	Title   string `json:"title"`
+}
