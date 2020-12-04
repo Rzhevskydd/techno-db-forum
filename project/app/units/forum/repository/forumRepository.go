@@ -12,6 +12,7 @@ type IForumRepository interface {
 	Get(slug string) (*models.Forum, error)
 	GetUsers(forum *models.Forum, params url.Values) (models.Users, error)
 	GetThreads(forum *models.Forum, params url.Values) (models.Threads, error)
+	CreateForumUser(forumId, userId int64) error
 }
 
 type ForumRepository struct {
@@ -56,7 +57,7 @@ func (r ForumRepository) Get(slug string) (*models.Forum, error) {
 }
 
 func (r ForumRepository) GetThreads(forum *models.Forum, params url.Values) (models.Threads, error) {
-	limit, order, sort, since := extractParams(params)
+	limit, order, sort, since := extractThreadsQueryParams(params)
 
 	threads := models.Threads{}
 
@@ -78,12 +79,12 @@ func (r ForumRepository) GetThreads(forum *models.Forum, params url.Values) (mod
 		err := rows.Scan(
 			&thread.Id,
 			&thread.Forum,
-			&thread.Author,
 			&thread.Slug,
-			&thread.Created,
+			&thread.Author,
 			&thread.Title,
 			&thread.Message,
 			&thread.Votes,
+			&thread.Created,
 		)
 
 		if err != nil {
@@ -100,19 +101,21 @@ func (r ForumRepository) GetThreads(forum *models.Forum, params url.Values) (mod
 	return threads, nil
 }
 
+// TODO forum_users обновлять при новом треде/посте
 func (r ForumRepository) GetUsers(forum *models.Forum, params url.Values) (models.Users, error) {
-	limit, order, sort, since := extractParams(params)
+	limit, order, signSort, since := extractUsersQueryParams(params)
 
 	users := models.Users{}
 
-	format := "SELECT u.id, u.nickname, u.fullname, u.email, u.about FROM forum_users fu" +
-		"INNER JOIN users u ON fu.nickname = u.nickname " +
-		"WHERE fu.forum_id = $1 AND fu.nickname  %s '%s' " +
-		"ORDER BY fu.nickname %s LIMIT %s"
+	format := "SELECT u.id, u.nickname, u.fullname, u.email, u.about FROM forum_users fu " +
+		" INNER JOIN users u ON fu.user_id = u.id WHERE fu.forum_id = $1 "
 
-	query := fmt.Sprintf(
-		format,
-		sort, since, order, limit)
+	if since != "" {
+		format += fmt.Sprintf(" AND fu.user_id  %s '%s' ", signSort, since)
+	}
+	format += " ORDER BY u.nickname %s LIMIT %s "
+
+	query := fmt.Sprintf(format, order, limit)
 
 	rows, err := r.DB.Query(query, forum.Id)
 
@@ -145,24 +148,50 @@ func (r ForumRepository) GetUsers(forum *models.Forum, params url.Values) (model
 
 }
 
-func extractParams(params url.Values) (limit string, order string, sort string, since string) {
+func extractThreadsQueryParams(params url.Values) (limit string, order string, sort string, since string) {
 	limit = "500"
 	if _, ok := params["limit"]; ok {
 		limit = params["limit"][0]
 	}
 
 	since = "1990-03-01 00:00:00-06"
-	if _, ok := params["since"]; ok {
-		since = params["since"][0]
-	}
 
 	order = "ASC"
 	sort = ">="
-	if _, ok := params["desc"]; ok {
+	if _, ok := params["desc"]; ok && params["desc"][0] == "true"{
 		order = "DESC"
 		sort = "<="
 		since = "2050-05-01 00:00:00-06"
 	}
 
+	if _, ok := params["since"]; ok && params["since"][0] != "" {
+		since = params["since"][0]
+	}
+
 	return
+}
+
+func extractUsersQueryParams(params url.Values) (limit string, order string, signSort string, since string) {
+	limit = "500"
+	if _, ok := params["limit"]; ok {
+		limit = params["limit"][0]
+	}
+
+	order = "ASC"
+	signSort = ">"
+	if _, ok := params["desc"]; ok && params["desc"][0] == "true"{
+		order = "DESC"
+		signSort = "<"
+	}
+
+	if _, ok := params["since"]; ok && params["since"][0] != ""{
+		since = params["since"][0]
+	}
+
+	return
+}
+
+func (r ForumRepository) CreateForumUser(forumId, userId int64) error {
+	_, err := r.DB.Exec("INSERT INTO forum_users(forum_id, user_id) VALUES ($1, $2)", forumId, userId)
+	return err
 }

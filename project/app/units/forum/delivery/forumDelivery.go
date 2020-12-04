@@ -77,7 +77,7 @@ func (api *ApiForumHadler) ForumThreadCreateHandler(w http.ResponseWriter, r *ht
 		delivery.NewError(w, http.StatusInternalServerError, "Internal error")
 		return
 	case 404:
-		delivery.NewError(w, http.StatusNotFound, "Can't find user with nickname: " + newThread.Author)
+		delivery.NewError(w, http.StatusNotFound, "Can't find user or forum")
 		return
 	case 409:
 		delivery.ResponseJson(w, http.StatusConflict, newThread)

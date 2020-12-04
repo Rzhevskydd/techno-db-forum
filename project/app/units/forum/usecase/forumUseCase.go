@@ -31,8 +31,8 @@ func (f *ForumUseCase) CreateForum(forum *models.Forum) (*models.Forum, int) {
 	}
 
 	if forumUser == nil {
-		forum.User = forumUser.Nickname
-		return nil, 404
+		//forum.User = forumUser.Nickname
+		return forum, 404
 	}
 
 	forum.User = forumUser.Nickname
@@ -59,6 +59,11 @@ func (f *ForumUseCase) CreateForumThread(thread *models.Thread, slug string) (*m
 	thread.Forum = threadForum.Slug
 
 	newThread, err := f.ThreadRep.Create(thread)
+	if err != nil {
+		return nil, 409
+	}
+
+	err = f.ForumRep.CreateForumUser(threadForum.Id, threadUser.Id)
 	if err != nil {
 		return nil, 409
 	}

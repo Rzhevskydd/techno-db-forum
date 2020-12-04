@@ -10,7 +10,7 @@ import (
 )
 
 type IThreadUseCase interface {
-	CreateThreadPosts(slugOrId string, posts *models.Posts) (*models.Posts, int, error)
+	CreateThreadPosts(slugOrId string, posts models.Posts) (models.Posts, int, error)
 	GetThread(slugOrId string) (*models.Thread, error)
 	UpdateThread(slugOrId string, updateThread *models.ThreadUpdate) (*models.Thread, error)
 	GetThreadPosts(slugOrId string, params url.Values) (models.Posts, error)
@@ -23,7 +23,9 @@ type ThreadUseCase struct {
 	PostRep p.PostRepository
 }
 
-func (t *ThreadUseCase) CreateThreadPosts(slugOrId string, posts *models.Posts) (*models.Posts, int, error) {
+
+// TODO forum_users обновлять при новом треде/посте
+func (t *ThreadUseCase) CreateThreadPosts(slugOrId string, posts models.Posts) (models.Posts, int, error) {
 	thread, err := t.ThreadRep.Get(slugOrId)
 	if err != nil {
 		return nil, 404, err
@@ -91,14 +93,14 @@ func (t *ThreadUseCase) VoteThread(slugOrId string, vote *models.Vote) (*models.
 	}
 
 	thread, err = t.ThreadRep.Vote(thread, vote)
-	if err == nil {
+	if err != nil {
 		return nil, err
 	}
 
 	return thread, nil
 }
 
-func (t *ThreadUseCase) GetThreadPosts(slugOrId string, params url.Values) (*models.Posts, error) {
+func (t *ThreadUseCase) GetThreadPosts(slugOrId string, params url.Values) (models.Posts, error) {
 	thread, err := t.ThreadRep.Get(slugOrId)
 	if err != nil {
 		return nil, err

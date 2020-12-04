@@ -11,7 +11,7 @@ import (
 type IThreadRepository interface {
 	Create(thread *models.Thread) (*models.Thread, error)
 	Get(slugOrId string) (*models.Thread, error)
-	GetPosts(thread *models.Thread, params url.Values) (*models.Posts, error)
+	GetPosts(thread *models.Thread, params url.Values) (models.Posts, error)
 	Update(slugOrId string, updateThread *models.ThreadUpdate) (*models.Thread, error)
 	Vote(thread *models.Thread, vote *models.Vote) (*models.Thread, error)
 }
@@ -54,7 +54,7 @@ func (t *ThreadRepository) Create(thread *models.Thread) (*models.Thread, error)
 		return nil, err
 	}
 
-	return thread, nil
+	return newThread, nil
 }
 
 func (t *ThreadRepository) Get(slugOrId string) (*models.Thread, error) {
@@ -66,20 +66,20 @@ func (t *ThreadRepository) Get(slugOrId string) (*models.Thread, error) {
 	}
 
 	thread := &models.Thread{}
+	query := "SELECT id, forum, author, created, message, slug, title, votes " +
+		"FROM threads WHERE " + searchKey
 
-	err := t.DB.QueryRow(
-		"SELECT id, forum, author, created, message, slug, title, votes " +
-			"FROM threads WHERE " + searchKey,
+	err := t.DB.QueryRow(query,
 			slugOrId,
 		).Scan(
-			thread.Id,
-			thread.Forum,
-			thread.Author,
-			thread.Created,
-			thread.Message,
-			thread.Slug,
-			thread.Title,
-			thread.Votes,
+			&thread.Id,
+			&thread.Forum,
+			&thread.Author,
+			&thread.Created,
+			&thread.Message,
+			&thread.Slug,
+			&thread.Title,
+			&thread.Votes,
 		)
 
 	if err != nil {
@@ -125,13 +125,13 @@ func (t *ThreadRepository) Update(slugOrId string, updateThread *models.ThreadUp
 
 func (t *ThreadRepository) Vote(thread *models.Thread, newVote *models.Vote) (*models.Thread, error) {
 	err := t.DB.QueryRow("SELECT nickname FROM users WHERE nickname = $1", newVote.Nickname).
-		Scan(&newVote.Nickname)
+		Scan(&newVote.Nickname)  // check if exists
 	if err != nil {
 		return nil, err
 	}
 
 	vote := &models.Vote{}
-	err = t.DB.QueryRow(
+	err = t.DB.QueryRow(  // check if exists
 		"SELECT voice FROM votes WHERE thread = $1 AND nickname = $2",
 			thread.Id,
 			newVote.Nickname,
@@ -141,13 +141,13 @@ func (t *ThreadRepository) Vote(thread *models.Thread, newVote *models.Vote) (*m
 	if err != nil {  // создаем голос
 		_, err = t.DB.Exec(
 			"INSERT INTO votes(thread, voice, nickname)" +
-			"VALUES ($1, $2, $2)",
+			"VALUES ($1, $2, $3)",
 			thread.Id,
 			newVote.Voice,
 			newVote.Nickname,
 		)
 
-		_, err = t.DB.Exec(
+		_, err = t.DB.Exec(  // TODO  узнать
 			"UPDATE threads SET votes = votes + $1" +
 				"WHERE id = $2",
 			newVote.Voice,
@@ -163,14 +163,14 @@ func (t *ThreadRepository) Vote(thread *models.Thread, newVote *models.Vote) (*m
 		_, err = t.DB.Exec(
 			"UPDATE votes SET voice = $1" +
 				"WHERE thread = $2 AND nickname = $3",
-			vote.Voice,
+			newVote.Voice,
 			thread.Id,
 			newVote.Nickname,
 		)
 
 		_, err = t.DB.Exec(
-			"UPDATE threads SET votes = votes + CASE WHEN $1 < 0 THEN -2 ELSE 2 END" +
-				"WHERE id = $2",
+			"UPDATE threads SET votes = votes + CASE WHEN $1 < 0 THEN -2 ELSE 2 END " +
+				" WHERE id = $2",
 			newVote.Voice,
 			thread.Id,
 		)
@@ -185,7 +185,7 @@ func (t *ThreadRepository) Vote(thread *models.Thread, newVote *models.Vote) (*m
 	return thread, err
 }
 
-func (t *ThreadRepository) GetPosts(thread *models.Thread, params url.Values) (*models.Posts, error) {
+func (t *ThreadRepository) GetPosts(thread *models.Thread, params url.Values) (models.Posts, error) {
 	limit, order, sortType, sincePost, sortSign := extractParams(params)
 
 	var sortedRows *sql.Rows
@@ -197,7 +197,7 @@ func (t *ThreadRepository) GetPosts(thread *models.Thread, params url.Values) (*
 	case "tree":
 		sortedRows, err = t.getTreeSortedRows(thread.Id, order, sincePost, limit, sortSign)
 	case "parent_tree":
-		sortedRows, err = getParentTreeSortedRows(thread.Id, order, sincePost, limit, sortSign)
+		sortedRows, err = t.getParentTreeSortedRows(thread.Id, order, sincePost, limit, sortSign)
 	}
 
 	if err != nil {
@@ -221,18 +221,18 @@ func (t *ThreadRepository) GetPosts(thread *models.Thread, params url.Values) (*
 			return nil, err
 		}
 
-		posts = append(posts, p)
+		posts = append(posts, &p)
 	}
 
 	if err = sortedRows.Close(); err != nil {
 		return nil, err
 	}
 
-	return &posts, nil
+	return posts, nil
 }
 
 func (t *ThreadRepository) getFlatSortedRows(id int32, order, sincePost, limit, sortSign string) (sortedRows *sql.Rows, err error) {
-	query := "SELECT id, parent, thread, forum, author, message, created, isedited FROM posts WHERE thread = $1 "
+	query := "SELECT id, parent, thread, forum, author, message, created, is_edited FROM posts WHERE thread = $1 "
 	if sincePost != "" {
 		query += fmt.Sprintf(" AND id %s %s", sortSign, sincePost)
 	}
@@ -243,7 +243,7 @@ func (t *ThreadRepository) getFlatSortedRows(id int32, order, sincePost, limit, 
 }
 
 func (t *ThreadRepository) getTreeSortedRows(id int32, order, sincePost, limit, sortSign string) (sortedRows *sql.Rows, err error) {
-	query := "SELECT id, parent, thread, forum, author, message, created, isedited FROM posts WHERE thread = $1 "
+	query := "SELECT id, parent, thread, forum, author, message, created, is_edited FROM posts WHERE thread = $1 "
 	if sincePost != "" {
 		query += fmt.Sprintf(" AND path %s (SELECT path FROM posts WHERE id = %s)", sortSign, sincePost)
 	}
@@ -254,13 +254,13 @@ func (t *ThreadRepository) getTreeSortedRows(id int32, order, sincePost, limit, 
 }
 
 func (t *ThreadRepository) getParentTreeSortedRows(id int32, order, sincePost, limit, sortSign string) (sortedRows *sql.Rows, err error) {
-	query := "SELECT id, parent, thread, forum, author, message, created, isedited FROM posts WHERE thread = $1 " +
+	query := "SELECT id, parent, thread, forum, author, message, created, is_edited FROM posts WHERE thread = $1 " +
 		"AND path[1] IN (SELECT path[1] FROM posts WHERE thread = $1 AND array_length(path, 1) = 1 "
 	if sincePost != "" {
-		query += fmt.Sprintf(" AND path[1] %s (SELECT path FROM posts WHERE id = %s)", sortSign, sincePost)
+		query += fmt.Sprintf(" AND path[1] %s (SELECT path FROM posts WHERE id = %s) ", sortSign, sincePost)
 	}
-	query += fmt.Sprintf("ORDER BY path[1] %s, path %s LIMIT %s)", order, order, limit)
-	query += fmt.Sprintf("ORDER BY path[1] %s, path )", order)
+	query += fmt.Sprintf(" ORDER BY path[1] %s, path %s LIMIT %s) ", order, order, limit)
+	query += fmt.Sprintf(" ORDER BY path[1] %s, path ", order)
 
 	sortedRows, err = t.DB.Query(query, id)
 	return sortedRows, err
@@ -273,8 +273,8 @@ func extractParams(params url.Values) (limit string, order string, sort string, 
 	}
 
 	sincePost = ""
-	if _, ok := params["sincePost"]; ok {
-		sincePost = params["sincePost"][0]
+	if _, ok := params["since"]; ok {
+		sincePost = params["since"][0]
 	}
 
 	order = "ASC"

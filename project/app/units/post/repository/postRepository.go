@@ -10,7 +10,7 @@ import (
 )
 
 type IPostRepository interface {
-	Create(thread *models.Thread, posts *models.Posts) (*models.Posts, error)
+	Create(thread *models.Thread, posts models.Posts) (models.Posts, error)
 	Get(slug string) (*models.Forum, error)
 	GetUsers(forum *models.Forum, params url.Values) (models.Users, error)
 	GetThreads(forum *models.Forum, params url.Values) (models.Threads, error)
@@ -43,14 +43,17 @@ func (p *PostRepository) setAuthor(author string) error {
 		)
 }
 
-func (p *PostRepository) Create(thread *models.Thread, posts *models.Posts) (*models.Posts, error) {
+func (p *PostRepository) Create(thread *models.Thread, posts models.Posts) (models.Posts, error) {
 	var err error
-	for _, post := range *posts {
+	for _, post := range posts {
 		post.Thread = thread.Id
 		post.Forum = thread.Forum
 
-		err = p.setParentId(thread, post.Parent)
-		if post.Parent != 0 && err != nil {
+		if post.Parent != 0 {
+			err = p.setParentId(thread, post.Parent)
+		}
+
+		if err != nil {
 			return nil, errors.New("404")  // 404 | 500
 		}
 
@@ -61,7 +64,7 @@ func (p *PostRepository) Create(thread *models.Thread, posts *models.Posts) (*mo
 	}
 
 	now := fmt.Sprint(time.Now().Format("2006-01-02 15:04:05"))
-	for _, post := range *posts {
+	for _, post := range posts {
 		post.Created = now
 		err = p.DB.QueryRow(
 				"INSERT INTO posts (parent, thread, forum, author, created, message, path) " +
@@ -76,21 +79,22 @@ func (p *PostRepository) Create(thread *models.Thread, posts *models.Posts) (*mo
 					post.Created,
 					post.Message,
 			).Scan(
-				post.Id,
+				&post.Id,
 			)
 
 		if err != nil {
 			return nil, err // 500
 		}
 
-		_, _ = p.DB.Exec("INSERT INTO forum_users(forum, nickname) VALUES($1, $2)",
-			post.Forum,
-			post.Author,
-		)
+		// there's trigger on_new_thread_inserted
+		//_, _ = p.DB.Exec("INSERT INTO forum_users(forum, nickname) VALUES($1, $2)",
+		//	post.Forum,
+		//	post.Author,
+		//)
 	}
 
 	_, err = p.DB.Exec("UPDATE forums SET posts = posts + $1 WHERE slug = $2",
-		len(*posts),
+		len(posts),
 		thread.Forum,
 	)
 

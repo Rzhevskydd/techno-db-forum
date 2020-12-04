@@ -14,4 +14,4 @@ type Post struct {
 	//ParentPointer *Post   `json:"-"`
 }
 
-type Posts []Post
+type Posts []*Post

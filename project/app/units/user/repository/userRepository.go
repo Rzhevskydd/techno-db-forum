@@ -31,10 +31,11 @@ func (r *UserRepository) Create(user *models.User) error {
 
 func (r *UserRepository) Get(nickname string) (*models.User, error) {
 	user := &models.User{}
-	 err := r.DB.QueryRow("SELECT nickname, email, about, fullname " +
+	 err := r.DB.QueryRow("SELECT id, nickname, email, about, fullname " +
 		"FROM users WHERE LOWER(nickname) = LOWER($1)",
 		nickname,
 	 ).Scan(
+	 		&user.Id,
 			&user.Nickname,
 			&user.Email,
 			&user.About,

@@ -7,7 +7,7 @@ import (
 )
 
 type IPostUseCase interface {
-	CreatePosts(posts *models.Posts) (*models.Posts, int)
+	CreatePosts(posts models.Posts) (models.Posts, int)
 	//GetForum(slug string) (*models.Forum, error)
 	//GetForumUsers(slug string, params url.Values) (models.Users, error)
 	//GetForumThreads(slug string, params url.Values) (models.Threads, error)

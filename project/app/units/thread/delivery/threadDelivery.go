@@ -37,7 +37,7 @@ func (api *ApiThreadHandler) HandleCreatePosts(w http.ResponseWriter, r *http.Re
 	}
 
 	slugOrId := vars["slug_or_id"]
-	posts, code, _ := api.Thread.CreateThreadPosts(slugOrId, in)
+	posts, code, _ := api.Thread.CreateThreadPosts(slugOrId, *in)
 
 	switch code {
 	case 201:
