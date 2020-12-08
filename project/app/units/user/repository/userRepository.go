@@ -84,7 +84,7 @@ func (r *UserRepository) GetAll(nickname string, email string) (models.Users, er
 func (r *UserRepository) Update(user *models.User) error {
 	_, err := r.DB.Exec(
 		"UPDATE users SET email = $1, about = $2, fullname = $3" +
-			" WHERE nickname = $4",
+			" WHERE LOWER(nickname) = LOWER($4)",
 		user.Email,
 		user.About,
 		user.FullName,

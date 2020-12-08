@@ -8,6 +8,7 @@ import (
 	threadDelivery "github.com/Rzhevskydd/techno-db-forum/project/app/units/thread/delivery"
 	userDelivery "github.com/Rzhevskydd/techno-db-forum/project/app/units/user/delivery"
 	postDelivery "github.com/Rzhevskydd/techno-db-forum/project/app/units/post/delivery"
+	serviceDelivery "github.com/Rzhevskydd/techno-db-forum/project/app/units/service/delivery"
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 	"log"
@@ -78,6 +79,6 @@ func (a *App) initializeApplication() {
 	postRouter := a.Router.PathPrefix("/post").Subrouter()
 	postDelivery.HandlePostRoutes(postRouter, useCase)
 
-	//serviceRouter := a.Router.PathPrefix("/service").Subrouter()
-
+	serviceRouter := a.Router.PathPrefix("/service").Subrouter()
+	serviceDelivery.HandleServiceRoutes(serviceRouter, useCase)
 }

@@ -50,7 +50,23 @@ func (api *ApiForumHadler) ForumCreateHandler(w http.ResponseWriter, r *http.Req
 		delivery.NewError(w, http.StatusNotFound, "Can't find user with nickname: " + forum.User)
 		return
 	case 409:
+		if forum.Posts == 0 && forum.Threads == 0 {
+			resp := struct {
+				Slug    string `json:"slug"`
+				Title   string `json:"title"`
+				User    string `json:"user"`
+			}{
+				Slug: in.Slug,
+				Title: in.Title,
+				User: in.User,
+			}
+
+			delivery.ResponseJson(w, http.StatusConflict, resp)
+			return
+		}
+
 		delivery.ResponseJson(w, http.StatusConflict, forum)
+
 		return
 	}
 }

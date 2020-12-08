@@ -3,6 +3,7 @@ package units
 import (
 	"database/sql"
 	f "github.com/Rzhevskydd/techno-db-forum/project/app/units/forum/repository"
+	s "github.com/Rzhevskydd/techno-db-forum/project/app/units/service/repository"
 	u "github.com/Rzhevskydd/techno-db-forum/project/app/units/user/repository"
 	t "github.com/Rzhevskydd/techno-db-forum/project/app/units/thread/repository"
 	p "github.com/Rzhevskydd/techno-db-forum/project/app/units/post/repository"
@@ -14,6 +15,7 @@ type Repositories struct {
 	Forum f.ForumRepository
 	Thread t.ThreadRepository
 	Post p.PostRepository
+	Service s.ServiceRepository
 }
 
 func NewRepositories(db *sql.DB) *Repositories {
@@ -22,5 +24,6 @@ func NewRepositories(db *sql.DB) *Repositories {
 		Forum: f.ForumRepository{DB: db},
 		Thread: t.ThreadRepository{DB: db},
 		Post: p.PostRepository{DB: db},
+		Service: s.ServiceRepository{DB: db},
 	}
 }

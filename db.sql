@@ -1,9 +1,11 @@
+create extension if not exists citext;
+
 CREATE TABLE IF NOT EXISTS users
 (
     id       BIGSERIAL    NOT NULL
         CONSTRAINT users_pk PRIMARY KEY,
-    nickname VARCHAR(32)  NOT NULL,
-    email    VARCHAR(255) NOT NULL,
+    nickname citext  NOT NULL,
+    email    citext NOT NULL,
     fullname TEXT         NOT NULL,
     about    TEXT
 );
