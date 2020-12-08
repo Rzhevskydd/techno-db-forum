@@ -14,4 +14,17 @@ type Post struct {
 	//ParentPointer *Post   `json:"-"`
 }
 
+type PostFull struct {
+	Author *User   `json:"author,omitempty"`
+	Forum  *Forum  `json:"forum,omitempty"`
+	Post   *Post   `json:"post,omitempty"`
+	Thread *Thread `json:"thread,omitempty"`
+}
+
+type PostRelatedFields struct {
+	WithUser bool
+	WithForum bool
+	WithThread bool
+}
+
 type Posts []*Post

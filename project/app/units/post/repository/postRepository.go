@@ -6,14 +6,15 @@ import (
 	"fmt"
 	"github.com/Rzhevskydd/techno-db-forum/project/app/models"
 	"net/url"
+	"strconv"
 	"time"
 )
 
 type IPostRepository interface {
 	Create(thread *models.Thread, posts models.Posts) (models.Posts, error)
-	Get(slug string) (*models.Forum, error)
-	GetUsers(forum *models.Forum, params url.Values) (models.Users, error)
-	GetThreads(forum *models.Forum, params url.Values) (models.Threads, error)
+	GetWithRelated(id string, related models.PostRelatedFields) (*models.PostFull, error)
+	GetPost(idStr string) (*models.Post, error)
+	Update(idStr, message string) (*models.Post, error)
 }
 
 type PostRepository struct {
@@ -105,116 +106,6 @@ func (p *PostRepository) Create(thread *models.Thread, posts models.Posts) (mode
 	return posts, nil
 }
 
-//func (r PostRepository) Get(slug string) (*models.Forum, error) {
-//	forum := &models.Forum{}
-//
-//	err := r.DB.QueryRow("SELECT id, slug, title, nickname, posts, threads FROM forums WHERE slug = $1",
-//			slug,
-//		).Scan(
-//			&forum.Id,
-//			&forum.Slug,
-//			&forum.Title,
-//			&forum.User,
-//			&forum.Posts,
-//			&forum.Threads,
-//		)
-//
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	return forum, nil
-//}
-//
-//func (r PostRepository) GetThreads(forum *models.Forum, params url.Values) (models.Threads, error) {
-//	limit, order, sort, since := extractParams(params)
-//
-//	threads := models.Threads{}
-//
-//	format := "SELECT id, forum, slug, author, title, message, votes, created FROM threads " +
-//		"WHERE forum = $1 AND created  %s '%s' ORDER BY created %s LIMIT %s"
-//
-//	query := fmt.Sprintf(
-//		format,
-//		sort, since, order, limit)
-//
-//	rows, err := r.DB.Query(query, forum.Slug)
-//
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	for rows.Next() {
-//		thread := models.Thread{}
-//		err := rows.Scan(
-//			&thread.Id,
-//			&thread.Forum,
-//			&thread.Author,
-//			&thread.Slug,
-//			&thread.Created,
-//			&thread.Title,
-//			&thread.Message,
-//			&thread.Votes,
-//		)
-//
-//		if err != nil {
-//			return nil, err
-//		}
-//
-//		threads = append(threads, thread)
-//	}
-//
-//	if err := rows.Close(); err != nil {
-//		return nil, err
-//	}
-//
-//	return threads, nil
-//}
-//
-//func (r PostRepository) GetUsers(forum *models.Forum, params url.Values) (models.Users, error) {
-//	limit, order, sort, since := extractParams(params)
-//
-//	users := models.Users{}
-//
-//	format := "SELECT u.id, u.nickname, u.fullname, u.email, u.about FROM forum_users fu" +
-//		"INNER JOIN users u ON fu.nickname = u.nickname " +
-//		"WHERE fu.forum_id = $1 AND fu.nickname  %s '%s' " +
-//		"ORDER BY fu.nickname %s LIMIT %s"
-//
-//	query := fmt.Sprintf(
-//		format,
-//		sort, since, order, limit)
-//
-//	rows, err := r.DB.Query(query, forum.Id)
-//
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	for rows.Next() {
-//		user := models.User{}
-//		err := rows.Scan(
-//			&user.Id,
-//			&user.Nickname,
-//			&user.FullName,
-//			&user.Email,
-//			&user.About,
-//		)
-//
-//		if err != nil {
-//			return nil, err
-//		}
-//
-//		users = append(users, user)
-//	}
-//
-//	if err := rows.Close(); err != nil {
-//		return nil, err
-//	}
-//
-//	return users, nil
-//
-//}
 
 func extractParams(params url.Values) (limit string, order string, sort string, since string) {
 	limit = "500"
@@ -236,4 +127,153 @@ func extractParams(params url.Values) (limit string, order string, sort string, 
 	}
 
 	return
+}
+
+func (p *PostRepository) GetWithRelated(idStr string, related models.PostRelatedFields) (*models.PostFull, error) {
+	postFull := &models.PostFull{}
+	postFull.Post = &models.Post{}
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		return nil, err
+	}
+
+	err = p.DB.QueryRow(
+			"SELECT id, parent, thread, forum, author, created, is_edited, message FROM posts WHERE id = $1",
+			id,
+		).Scan(
+			&postFull.Post.Id,
+			&postFull.Post.Parent,
+			&postFull.Post.Thread,
+			&postFull.Post.Forum,
+			&postFull.Post.Author,
+			&postFull.Post.Created,
+			&postFull.Post.IsEdited,
+			&postFull.Post.Message,
+		)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if related.WithUser {
+		postFull.Author = &models.User{}
+
+		err = p.DB.QueryRow(
+			"SELECT id, nickname, email, fullname, about FROM users WHERE nickname = $1",
+			postFull.Post.Author,
+		).Scan(
+			&postFull.Author.Id,
+			&postFull.Author.Nickname,
+			&postFull.Author.Email,
+			&postFull.Author.FullName,
+			&postFull.Author.About,
+		)
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if related.WithForum {
+		postFull.Forum = &models.Forum{}
+
+		err = p.DB.QueryRow(
+			"SELECT id, slug, title, nickname, posts, threads FROM forums WHERE slug = $1",
+			postFull.Post.Forum,
+		).Scan(
+			&postFull.Forum.Id,
+			&postFull.Forum.Slug,
+			&postFull.Forum.Title,
+			&postFull.Forum.User,
+			&postFull.Forum.Posts,
+			&postFull.Forum.Threads,
+		)
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if related.WithThread {
+		postFull.Thread = &models.Thread{}
+
+		err = p.DB.QueryRow(
+			"SELECT id, forum, author, created, message, title, votes, slug FROM threads WHERE id = $1",
+			postFull.Post.Thread,
+		).Scan(
+			&postFull.Thread.Id,
+			&postFull.Thread.Forum,
+			&postFull.Thread.Author,
+			&postFull.Thread.Created,
+			&postFull.Thread.Message,
+			&postFull.Thread.Title,
+			&postFull.Thread.Votes,
+			&postFull.Thread.Slug,
+		)
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return postFull, nil
+}
+
+func (p *PostRepository) GetPost(idStr string) (*models.Post, error) {
+	post := &models.Post{}
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		return nil, err
+	}
+
+	err = p.DB.QueryRow(
+		"SELECT id, parent, thread, forum, author, created, is_edited, message FROM posts WHERE id = $1",
+		id,
+	).Scan(
+		&post.Id,
+		&post.Parent,
+		&post.Thread,
+		&post.Forum,
+		&post.Author,
+		&post.Created,
+		&post.IsEdited,
+		&post.Message,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return post, nil
+}
+
+func (p *PostRepository) Update(idStr, message string) (*models.Post, error) {
+	post := &models.Post{}
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = p.DB.QueryRow(
+		"UPDATE posts SET message = $2, is_edited = TRUE WHERE id = $1 " +
+			"RETURNING id, parent, thread, forum, author, created, is_edited, message",
+		id,
+		message,
+	).Scan(
+		&post.Id,
+		&post.Parent,
+		&post.Thread,
+		&post.Forum,
+		&post.Author,
+		&post.Created,
+		&post.IsEdited,
+		&post.Message,
+	); err != nil {
+		return nil, err
+	}
+
+	return post, nil
 }

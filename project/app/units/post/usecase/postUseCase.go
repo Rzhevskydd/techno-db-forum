@@ -3,11 +3,15 @@ package postUsecase
 import (
 	"github.com/Rzhevskydd/techno-db-forum/project/app/models"
 	p "github.com/Rzhevskydd/techno-db-forum/project/app/units/post/repository"
+	"github.com/Rzhevskydd/techno-db-forum/project/app/utils/validator"
 	"net/url"
+	"strings"
 )
 
 type IPostUseCase interface {
 	CreatePosts(posts models.Posts) (models.Posts, int)
+	GetPostDetails(id string, params url.Values) (*models.PostFull, error)
+	UpdatePostDetails(id string, message string) (*models.Post, error)
 	//GetForum(slug string) (*models.Forum, error)
 	//GetForumUsers(slug string, params url.Values) (models.Users, error)
 	//GetForumThreads(slug string, params url.Values) (models.Threads, error)
@@ -18,82 +22,57 @@ type PostUseCase struct {
 	PostRep p.PostRepository
 }
 
-func (f *ForumUseCase) CreateForum(forum *models.Forum) (*models.Forum, int) {
-	forumUser, err := f.UserRep.Get(forum.User)
-
-	if err != nil {
-		return nil, 500
+func getRelatedFields(params url.Values) models.PostRelatedFields {
+	relatedFields := models.PostRelatedFields{
+		WithUser: false,
+		WithForum: false,
+		WithThread: false,
 	}
 
-	if forumUser == nil {
-		forum.User = forumUser.Nickname
-		return nil, 404
+	if _, ok := params["related"]; ok {
+		in := params["related"][0]
+		//split := strings.Split(in, ",")
+
+		if strings.Contains(in, "user") {
+			relatedFields.WithUser = true
+		}
+
+		if strings.Contains(in, "forum") {
+			relatedFields.WithForum = true
+		}
+
+		if strings.Contains(in, "thread") {
+			relatedFields.WithThread = true
+		}
 	}
-
-	forum.User = forumUser.Nickname
-
-	if err = f.ForumRep.Create(forum); err != nil {
-		return forum, 409
-	}
-
-	return forum, 201
+	return relatedFields
 }
 
-func (f *ForumUseCase) CreateForumThread(thread *models.Thread, slug string) (*models.Thread, int) {
-	threadUser, err := f.UserRep.Get(thread.Author)
-	if threadUser == nil || err != nil {
-		//thread.Author = threadUser.Nickname
-		return nil, 404
-	}
+func (p *PostUseCase) GetPostDetails(id string, params url.Values) (*models.PostFull, error) {
+	related := getRelatedFields(params)
 
-	threadForum, err := f.GetForum(slug)
-	if threadForum == nil || err != nil {
-		return nil, 404
-	}
-
-	thread.Forum = threadForum.Slug
-
-	newThread, err := f.ThreadRep.Create(thread)
+	postFull, err := p.PostRep.GetWithRelated(id, related)
 	if err != nil {
-		return nil, 409
+		return nil, err
 	}
 
-	return newThread, 201
+	return postFull, nil
 }
 
-func (f *ForumUseCase) GetForum(slug string) (*models.Forum, error) {
-	forum, err := f.ForumRep.Get(slug)
-	if err != nil {
-		return nil, err
-	}
-	return forum, nil
-}
-
-func (f *ForumUseCase) GetForumThreads(slug string, params url.Values) (models.Threads, error) {
-	forum, err := f.ForumRep.Get(slug)
-	if err != nil || forum == nil {
-		return nil, err
-	}
-
-	threads, err := f.ForumRep.GetThreads(forum, params)
+func (p *PostUseCase) UpdatePostDetails(id string, message string) (*models.Post, error) {
+	post, err := p.PostRep.GetPost(id)
 	if err != nil {
 		return nil, err
 	}
 
-	return threads, nil
-}
-
-
-func (f *ForumUseCase) GetForumUsers(slug string, params url.Values) (models.Users, error) {
-	forum, err := f.ForumRep.Get(slug)
-	if err != nil || forum == nil {
-		return nil, err
+	if validator.IsEmpty(message) || post.Message == message {
+		return post, nil
 	}
 
-	users, err := f.ForumRep.GetUsers(forum, params)
+	post, err = p.PostRep.Update(id, message)
 	if err != nil {
 		return nil, err
 	}
 
-	return users, nil
+	return post, nil
 }

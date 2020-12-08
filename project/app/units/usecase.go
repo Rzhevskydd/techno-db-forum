@@ -2,6 +2,7 @@ package units
 
 import (
 	f "github.com/Rzhevskydd/techno-db-forum/project/app/units/forum/usecase"
+	p "github.com/Rzhevskydd/techno-db-forum/project/app/units/post/usecase"
 	t "github.com/Rzhevskydd/techno-db-forum/project/app/units/thread/usecase"
 	u "github.com/Rzhevskydd/techno-db-forum/project/app/units/user/usecase"
 )
@@ -10,6 +11,7 @@ type UseCase struct {
 	User  u.UserUseCase
 	Forum f.ForumUseCase
 	Thread t.ThreadUseCase
+	Post p.PostUseCase
 }
 
 func NewUseCase(repos *Repositories) *UseCase {
@@ -25,5 +27,9 @@ func NewUseCase(repos *Repositories) *UseCase {
 			ThreadRep: repos.Thread,
 			PostRep:   repos.Post,
 		},
+		Post: p.PostUseCase{
+			PostRep: repos.Post,
+		},
+
 	}
 }
