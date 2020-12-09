@@ -38,7 +38,12 @@ func (f *ForumUseCase) CreateForum(forum *models.Forum) (*models.Forum, int) {
 	forum.User = forumUser.Nickname
 
 	if err = f.ForumRep.Create(forum); err != nil {
-		return forum, 409
+		existingForum, err := f.ForumRep.Get(forum.Slug)
+		if err != nil {
+			return nil, 409
+		}
+
+		return existingForum, 409
 	}
 
 	return forum, 201
@@ -58,15 +63,23 @@ func (f *ForumUseCase) CreateForumThread(thread *models.Thread, slug string) (*m
 
 	thread.Forum = threadForum.Slug
 
+	existingThread, err := f.ThreadRep.Get(thread.Slug)
+	if existingThread != nil {
+		return existingThread, 409
+	}
+
+
 	newThread, err := f.ThreadRep.Create(thread)
 	if err != nil {
+		println(err)
 		return nil, 409
 	}
 
-	err = f.ForumRep.CreateForumUser(threadForum.Id, threadUser.Id)
-	if err != nil {
-		return nil, 409
-	}
+	_ = f.ForumRep.CreateForumUser(newThread.Forum, newThread.Author)
+	//if err != nil {
+	//	println(err.Error())
+	//	return nil, 500
+	//}
 
 	return newThread, 201
 }

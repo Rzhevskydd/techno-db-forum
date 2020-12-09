@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/Rzhevskydd/techno-db-forum/project/app/models"
+	"github.com/Rzhevskydd/techno-db-forum/project/app/utils/validator"
 	"net/url"
 	"strconv"
 )
@@ -22,26 +23,42 @@ type ThreadRepository struct {
 
 func (t *ThreadRepository) Create(thread *models.Thread) (*models.Thread, error) {
 	newThread := &models.Thread{}
-	err := t.DB.QueryRow(
-		"INSERT INTO threads (author, forum, message, slug, title, created) " +
-			"VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, forum, author, created, message, title, votes, slug",
+	var err error
+	var row *sql.Row
+
+	if !validator.IsEmpty(thread.Created) {
+		row = t.DB.QueryRow(
+			"INSERT INTO threads (author, forum, message, slug, title, created) " +
+				"VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, forum, author, created, message, title, votes, slug",
 			thread.Author,
 			thread.Forum,
 			thread.Message,
 			thread.Slug,
 			thread.Title,
 			thread.Created,
-	).Scan(
-			&newThread.Id,
-			&newThread.Forum,
-			&newThread.Author,
-			&newThread.Created,
-			&newThread.Message,
-			&newThread.Title,
-			&newThread.Votes,
-			&newThread.Slug,
-	)
+		)
+	} else {
+		row = t.DB.QueryRow(
+			"INSERT INTO threads (author, forum, message, slug, title) " +
+				"VALUES ($1, $2, $3, $4, $5) RETURNING id, forum, author, created, message, title, votes, slug",
+			thread.Author,
+			thread.Forum,
+			thread.Message,
+			thread.Slug,
+			thread.Title,
+		)
+	}
 
+	err = row.Scan(
+		&newThread.Id,
+		&newThread.Forum,
+		&newThread.Author,
+		&newThread.Created,
+		&newThread.Message,
+		&newThread.Title,
+		&newThread.Votes,
+		&newThread.Slug,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +77,7 @@ func (t *ThreadRepository) Create(thread *models.Thread) (*models.Thread, error)
 func (t *ThreadRepository) Get(slugOrId string) (*models.Thread, error) {
 	searchKey := ""
 	if _, err := strconv.Atoi(slugOrId); err != nil {
-		searchKey = "slug = $1 "
+		searchKey = " (slug = $1 AND slug <> '') "
 	} else {
 		searchKey = "id = $1 "
 	}
@@ -257,7 +274,7 @@ func (t *ThreadRepository) getParentTreeSortedRows(id int32, order, sincePost, l
 	query := "SELECT id, parent, thread, forum, author, message, created, is_edited FROM posts WHERE thread = $1 " +
 		"AND path[1] IN (SELECT path[1] FROM posts WHERE thread = $1 AND array_length(path, 1) = 1 "
 	if sincePost != "" {
-		query += fmt.Sprintf(" AND path[1] %s (SELECT path FROM posts WHERE id = %s) ", sortSign, sincePost)
+		query += fmt.Sprintf(" AND path %s (SELECT path[1:1] FROM posts WHERE id = %s) ", sortSign, sincePost)
 	}
 	query += fmt.Sprintf(" ORDER BY path[1] %s, path %s LIMIT %s) ", order, order, limit)
 	query += fmt.Sprintf(" ORDER BY path[1] %s, path ", order)
@@ -278,7 +295,7 @@ func extractParams(params url.Values) (limit string, order string, sort string, 
 	}
 
 	order = "ASC"
-	if _, ok := params["desc"]; ok {
+	if _, ok := params["desc"]; ok && params["desc"][0] == "true" {
 		order = "DESC"
 	}
 

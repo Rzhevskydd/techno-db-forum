@@ -56,9 +56,9 @@ func (api *ApiForumHadler) ForumCreateHandler(w http.ResponseWriter, r *http.Req
 				Title   string `json:"title"`
 				User    string `json:"user"`
 			}{
-				Slug: in.Slug,
-				Title: in.Title,
-				User: in.User,
+				Slug: forum.Slug,
+				Title: forum.Title,
+				User: forum.User,
 			}
 
 			delivery.ResponseJson(w, http.StatusConflict, resp)

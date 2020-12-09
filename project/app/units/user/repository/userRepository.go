@@ -32,7 +32,7 @@ func (r *UserRepository) Create(user *models.User) error {
 func (r *UserRepository) Get(nickname string) (*models.User, error) {
 	user := &models.User{}
 	 err := r.DB.QueryRow("SELECT id, nickname, email, about, fullname " +
-		"FROM users WHERE LOWER(nickname) = LOWER($1)",
+		"FROM users WHERE nickname = $1",
 		nickname,
 	 ).Scan(
 	 		&user.Id,
@@ -57,7 +57,7 @@ func (r *UserRepository) GetAll(nickname string, email string) (models.Users, er
 
 	rows, err := r.DB.Query(
 		"SELECT nickname, email, about, fullname FROM users " +
-				"WHERE LOWER(nickname) = LOWER($1) OR LOWER(email) = LOWER($2)",
+				"WHERE nickname = $1 OR email = $2",
 		nickname,
 		email)
 	
@@ -84,7 +84,7 @@ func (r *UserRepository) GetAll(nickname string, email string) (models.Users, er
 func (r *UserRepository) Update(user *models.User) error {
 	_, err := r.DB.Exec(
 		"UPDATE users SET email = $1, about = $2, fullname = $3" +
-			" WHERE LOWER(nickname) = LOWER($4)",
+			" WHERE nickname = $4",
 		user.Email,
 		user.About,
 		user.FullName,

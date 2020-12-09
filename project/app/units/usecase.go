@@ -28,6 +28,7 @@ func NewUseCase(repos *Repositories) *UseCase {
 			UserRep:   repos.User,
 			ThreadRep: repos.Thread,
 			PostRep:   repos.Post,
+			ForumRep: repos.Forum,
 		},
 		Post: p.PostUseCase{
 			PostRep: repos.Post,

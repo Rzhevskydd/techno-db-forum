@@ -2,6 +2,7 @@ package threadUseCase
 
 import (
 	"github.com/Rzhevskydd/techno-db-forum/project/app/models"
+	f "github.com/Rzhevskydd/techno-db-forum/project/app/units/forum/repository"
 	p "github.com/Rzhevskydd/techno-db-forum/project/app/units/post/repository"
 	t "github.com/Rzhevskydd/techno-db-forum/project/app/units/thread/repository"
 	u "github.com/Rzhevskydd/techno-db-forum/project/app/units/user/repository"
@@ -21,6 +22,7 @@ type ThreadUseCase struct {
 	UserRep u.UserRepository
 	ThreadRep t.ThreadRepository
 	PostRep p.PostRepository
+	ForumRep f.ForumRepository
 }
 
 

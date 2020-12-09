@@ -107,17 +107,22 @@ func (r ForumRepository) GetUsers(forum *models.Forum, params url.Values) (model
 
 	users := models.Users{}
 
+	//format := "SELECT id, nickname, fullname, email, about FROM users  " +
+	//	" WHERE id IN (SELECT user_id FROM forum_users WHERE forum_id = $1) "
 	format := "SELECT u.id, u.nickname, u.fullname, u.email, u.about FROM forum_users fu " +
-		" INNER JOIN users u ON fu.user_id = u.id WHERE fu.forum_id = $1 "
-
+		" INNER JOIN users u ON fu.nickname = u.nickname WHERE forum = $1 "
+		//fmt.Sprintf(" AND u.nickname %s $2 ", signSort) +
+		//" ORDER BY nickname %s LIMIT $3 "
 	if since != "" {
-		format += fmt.Sprintf(" AND fu.user_id  %s '%s' ", signSort, since)
+		format += fmt.Sprintf(" AND u.nickname  %s '%s' ", signSort, since)
+		//format += fmt.Sprintf(" AND fu.user_id  %s '%s' ", signSort, since)
 	}
-	format += " ORDER BY u.nickname %s LIMIT %s "
+	format += " ORDER BY nickname %s LIMIT $2 "
+	//query += " ORDER BY fu.nickname %s LIMIT $3 "
 
-	query := fmt.Sprintf(format, order, limit)
+	query := fmt.Sprintf(format, order)
 
-	rows, err := r.DB.Query(query, forum.Id)
+	rows, err := r.DB.Query(query, forum.Slug, limit)
 
 	if err != nil {
 		return nil, err
@@ -179,7 +184,7 @@ func extractUsersQueryParams(params url.Values) (limit string, order string, sig
 
 	order = "ASC"
 	signSort = ">"
-	if _, ok := params["desc"]; ok && params["desc"][0] == "true"{
+	if _, ok := params["desc"]; ok && params["desc"][0] == "true" {
 		order = "DESC"
 		signSort = "<"
 	}
@@ -191,7 +196,7 @@ func extractUsersQueryParams(params url.Values) (limit string, order string, sig
 	return
 }
 
-func (r ForumRepository) CreateForumUser(forumId, userId int64) error {
-	_, err := r.DB.Exec("INSERT INTO forum_users(forum_id, user_id) VALUES ($1, $2)", forumId, userId)
+func (r ForumRepository) CreateForumUser(forumSlug, author string) error {
+	_, err := r.DB.Exec("INSERT INTO forum_users(forum, nickname) VALUES ($1, $2)", forumSlug, author)
 	return err
 }

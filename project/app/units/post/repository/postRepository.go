@@ -3,7 +3,6 @@ package repository
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"github.com/Rzhevskydd/techno-db-forum/project/app/models"
 	"net/url"
 	"strconv"
@@ -64,23 +63,24 @@ func (p *PostRepository) Create(thread *models.Thread, posts models.Posts) (mode
 		}
 	}
 
-	now := fmt.Sprint(time.Now().Format("2006-01-02 15:04:05"))
+	now := time.Now()
 	for _, post := range posts {
-		post.Created = now
+		//post.Created = now
 		err = p.DB.QueryRow(
 				"INSERT INTO posts (parent, thread, forum, author, created, message, path) " +
 					"VALUES ($1, $2, $3, $4, $5, $6, " +
 					"(SELECT path FROM posts WHERE id = $1) || " +
 					"currval(pg_get_serial_sequence('posts', 'id'))::bigint) " +
-					"RETURNING id ",
+					"RETURNING id, created ",
 					post.Parent,
 					post.Thread,
 					post.Forum,
 					post.Author,
-					post.Created,
+					now,
 					post.Message,
 			).Scan(
 				&post.Id,
+				&post.Created,
 			)
 
 		if err != nil {
@@ -88,10 +88,10 @@ func (p *PostRepository) Create(thread *models.Thread, posts models.Posts) (mode
 		}
 
 		// there's trigger on_new_thread_inserted
-		//_, _ = p.DB.Exec("INSERT INTO forum_users(forum, nickname) VALUES($1, $2)",
-		//	post.Forum,
-		//	post.Author,
-		//)
+		_, _ = p.DB.Exec("INSERT INTO forum_users(forum, nickname) VALUES($1, $2)",
+			post.Forum,
+			post.Author,
+		)
 	}
 
 	_, err = p.DB.Exec("UPDATE forums SET posts = posts + $1 WHERE slug = $2",
