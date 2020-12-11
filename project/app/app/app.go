@@ -2,6 +2,7 @@ package app
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/Rzhevskydd/techno-db-forum/project/app/units"
 	forumDelivery "github.com/Rzhevskydd/techno-db-forum/project/app/units/forum/delivery"
@@ -11,6 +12,7 @@ import (
 	serviceDelivery "github.com/Rzhevskydd/techno-db-forum/project/app/units/service/delivery"
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"time"
@@ -34,19 +36,11 @@ type App struct {
 }
 
 func (a *App) Initialize(cfg Config) {
-	connectionString :=
-		fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable ",
-			cfg.DbHost, cfg.DbPort, cfg.DbUser, cfg.DbPwd, cfg.DbName)
-
 	var err error
-	a.DB, err = sql.Open("postgres", connectionString)
+	err = a.initializeDatabase(cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	a.DB.SetMaxOpenConns(100)
-	a.DB.SetMaxIdleConns(30)
-	a.DB.SetConnMaxLifetime(time.Hour)
 
 	a.Router = mux.NewRouter().PathPrefix(ApiPrefix).Subrouter()
 
@@ -81,4 +75,27 @@ func (a *App) initializeApplication() {
 
 	serviceRouter := a.Router.PathPrefix("/service").Subrouter()
 	serviceDelivery.HandleServiceRoutes(serviceRouter, useCase)
+}
+
+func (a *App) initializeDatabase(cfg Config) (err error) {
+	if a.DB != nil {
+		return errors.New("db already initialized")
+	}
+
+	connectionString :=
+		fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable ",
+			cfg.DbHost, cfg.DbPort, cfg.DbUser, cfg.DbPwd, cfg.DbName)
+	a.DB, err = sql.Open("postgres", connectionString)
+
+	a.DB.SetMaxOpenConns(100)
+	a.DB.SetMaxIdleConns(30)
+	a.DB.SetConnMaxLifetime(time.Hour)
+
+	if query, err := ioutil.ReadFile("db/db_init_tables.sql"); err != nil {
+		return err
+	} else {
+		_, err = a.DB.Exec(string(query))
+		return err
+	}
+
 }

@@ -40,6 +40,8 @@ func (t *ThreadUseCase) CreateThreadPosts(slugOrId string, posts models.Posts) (
 	newPosts, err := t.PostRep.Create(thread, posts)
 	if err != nil {
 		switch err.Error() {
+		case "409":
+			return nil, 409, err
 		case "404":
 			return nil, 404, err
 

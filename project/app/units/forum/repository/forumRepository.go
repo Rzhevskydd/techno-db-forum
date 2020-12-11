@@ -107,18 +107,12 @@ func (r ForumRepository) GetUsers(forum *models.Forum, params url.Values) (model
 
 	users := models.Users{}
 
-	//format := "SELECT id, nickname, fullname, email, about FROM users  " +
-	//	" WHERE id IN (SELECT user_id FROM forum_users WHERE forum_id = $1) "
 	format := "SELECT u.id, u.nickname, u.fullname, u.email, u.about FROM forum_users fu " +
 		" INNER JOIN users u ON fu.nickname = u.nickname WHERE forum = $1 "
-		//fmt.Sprintf(" AND u.nickname %s $2 ", signSort) +
-		//" ORDER BY nickname %s LIMIT $3 "
 	if since != "" {
 		format += fmt.Sprintf(" AND u.nickname  %s '%s' ", signSort, since)
-		//format += fmt.Sprintf(" AND fu.user_id  %s '%s' ", signSort, since)
 	}
 	format += " ORDER BY nickname %s LIMIT $2 "
-	//query += " ORDER BY fu.nickname %s LIMIT $3 "
 
 	query := fmt.Sprintf(format, order)
 

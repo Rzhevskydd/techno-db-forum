@@ -50,7 +50,7 @@ func (api *ApiThreadHandler) HandleCreatePosts(w http.ResponseWriter, r *http.Re
 		delivery.NewError(w, http.StatusNotFound, "Can't find user with slug_or_id: " + slugOrId)
 		return
 	case 409:
-		delivery.ResponseJson(w, http.StatusConflict, posts)
+		delivery.NewError(w, http.StatusConflict, "Parent post was created in another thread")
 		return
 	}
 }

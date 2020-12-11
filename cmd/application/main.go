@@ -12,8 +12,8 @@ func main() {
 		DbHost: "localhost",
 		DbName: "forum",
 		DbPort: "5432",
-		DbUser: "danil",
-		DbPwd:  "password",
+		DbUser: "forum",
+		DbPwd:  "forum",
 	}
 
 	a := app.App{}

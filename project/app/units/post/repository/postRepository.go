@@ -54,7 +54,7 @@ func (p *PostRepository) Create(thread *models.Thread, posts models.Posts) (mode
 		}
 
 		if err != nil {
-			return nil, errors.New("404")  // 404 | 500
+			return nil, errors.New("409")  // 404 | 500
 		}
 
 		err = p.setAuthor(post.Author)

@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS users
 (
     id       BIGSERIAL    NOT NULL
         CONSTRAINT users_pk PRIMARY KEY,
-    nickname citext  NOT NULL,
+    nickname citext COLLATE "POSIX" NOT NULL UNIQUE ,
     email    citext NOT NULL,
     fullname TEXT         NOT NULL,
     about    TEXT
