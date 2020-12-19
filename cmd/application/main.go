@@ -13,7 +13,9 @@ func main() {
 		DbName: "forum",
 		DbPort: "5432",
 		DbUser: "forum",
+		//DbUser: "danil",
 		DbPwd:  "forum",
+		//DbPwd:  "password",
 	}
 
 	a := app.App{}
