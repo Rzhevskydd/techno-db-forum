@@ -7,6 +7,7 @@ require (
 	github.com/bozaro/golorem v0.0.0-20170501165920-50e5b610280b // indirect
 	github.com/bozaro/tech-db-forum v0.2.2 // indirect
 	github.com/cockroachdb/apd v1.1.0 // indirect
+	github.com/go-openapi/strfmt v0.19.11
 	github.com/go-openapi/validate v0.20.0 // indirect
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect
 	github.com/gorilla/mux v1.8.0

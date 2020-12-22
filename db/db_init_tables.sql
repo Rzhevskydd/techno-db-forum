@@ -1,37 +1,37 @@
 create extension if not exists citext;
 
--- DROP INDEX IF EXISTS users_nickname_uindex;
--- DROP INDEX IF EXISTS users_email_uindex;
--- DROP INDEX IF EXISTS users_coverage_index;
--- DROP INDEX IF EXISTS forums_slug_uindex;;
--- DROP INDEX IF EXISTS forums_usernickname_idx;
--- DROP INDEX IF EXISTS threads_slug_idx;
--- DROP INDEX IF EXISTS threads_forum_idx;
--- DROP INDEX IF EXISTS threads_created_idx;
--- DROP INDEX IF EXISTS threads_created_forum_idx;
--- DROP INDEX IF EXISTS threads_coverage_idx;
--- DROP INDEX IF EXISTS posts_created_thread_idx;
--- DROP INDEX IF EXISTS posts_thread_idx;
--- DROP INDEX IF EXISTS posts_forum_idx;
--- DROP INDEX IF EXISTS posts_thread_id_idx;
--- DROP INDEX IF EXISTS posts_thread_path_idx;
--- DROP INDEX IF EXISTS forum_users_forum_idx;
--- DROP INDEX IF EXISTS forums_users_nickname_idx;
--- DROP INDEX IF EXISTS forums_users_forum_nickname_idx;
---
--- DROP INDEX IF EXISTS idx_posts_path;
--- DROP INDEX IF EXISTS idx_posts_parent;
--- DROP INDEX IF EXISTS idx_posts_thread_id;
--- DROP INDEX IF EXISTS idx_posts_pok;
--- DROP INDEX IF EXISTS idx_posts_created;
--- DROP INDEX IF EXISTS idx_votes_nickname_thread_unique2;
-
 DROP TABLE IF EXISTS forum_users;
 DROP TABLE IF EXISTS votes;
 DROP TABLE IF EXISTS posts;
 DROP TABLE IF EXISTS threads;
 DROP TABLE IF EXISTS forums;
 DROP TABLE IF EXISTS users;
+
+DROP INDEX IF EXISTS users_nickname_uindex;
+DROP INDEX IF EXISTS users_email_uindex;
+DROP INDEX IF EXISTS users_coverage_index;
+DROP INDEX IF EXISTS forums_slug_uindex;;
+DROP INDEX IF EXISTS forums_usernickname_idx;
+DROP INDEX IF EXISTS threads_slug_idx;
+DROP INDEX IF EXISTS threads_forum_idx;
+DROP INDEX IF EXISTS threads_created_idx;
+DROP INDEX IF EXISTS threads_created_forum_idx;
+DROP INDEX IF EXISTS threads_coverage_idx;
+DROP INDEX IF EXISTS posts_created_thread_idx;
+DROP INDEX IF EXISTS posts_thread_idx;
+DROP INDEX IF EXISTS posts_forum_idx;
+DROP INDEX IF EXISTS posts_thread_id_idx;
+DROP INDEX IF EXISTS posts_thread_path_idx;
+DROP INDEX IF EXISTS forum_users_forum_idx;
+DROP INDEX IF EXISTS forums_users_nickname_idx;
+DROP INDEX IF EXISTS forums_users_forum_nickname_idx;
+
+DROP INDEX IF EXISTS idx_posts_path;
+DROP INDEX IF EXISTS idx_posts_parent;
+DROP INDEX IF EXISTS idx_posts_thread_id;
+DROP INDEX IF EXISTS idx_posts_pok;
+DROP INDEX IF EXISTS idx_posts_created;
+DROP INDEX IF EXISTS idx_votes_nickname_thread_unique2;
 
 
 CREATE TABLE IF NOT EXISTS users

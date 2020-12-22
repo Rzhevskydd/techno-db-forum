@@ -1,9 +1,12 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"github.com/Rzhevskydd/techno-db-forum/project/app/models"
+	"github.com/go-openapi/strfmt"
 	"net/url"
 	"strconv"
 	"time"
@@ -45,7 +48,30 @@ func (p *PostRepository) setAuthor(author string) error {
 
 func (p *PostRepository) Create(thread *models.Thread, posts models.Posts) (models.Posts, error) {
 	var err error
-	for _, post := range posts {
+
+	postInserterTmpl := `(
+						'%d',
+						'%d',
+						'%s',
+						'%s',
+						'%s',
+						'%s',
+						(SELECT path FROM posts WHERE id = %d) || currval(pg_get_serial_sequence('posts', 'id'))::bigint
+	)`
+
+	forumUserInserterTmpl := "('%s', '%s')"
+
+	queryPosts := "INSERT INTO posts(parent, thread, forum, author, created, message, path) VALUES "
+	queryForumUsers := "INSERT INTO forum_users(forum, nickname) VALUES "
+
+	postsCount := len(posts)
+	if postsCount == 0 {
+		return posts, nil
+	}
+
+	now := strfmt.DateTime(time.Now())
+	for idx, post := range posts {
+		post.Created = now.String()
 		post.Thread = thread.Id
 		post.Forum = thread.Forum
 
@@ -61,47 +87,100 @@ func (p *PostRepository) Create(thread *models.Thread, posts models.Posts) (mode
 		if err != nil {
 			return nil, errors.New("404")  // 404
 		}
-	}
 
-	now := time.Now()
-	for _, post := range posts {
-		//post.Created = now
-		err = p.DB.QueryRow(
-				"INSERT INTO posts (parent, thread, forum, author, created, message, path) " +
-					"VALUES ($1, $2, $3, $4, $5, $6, " +
-					"(SELECT path FROM posts WHERE id = $1) || " +
-					"currval(pg_get_serial_sequence('posts', 'id'))::bigint) " +
-					"RETURNING id, created ",
-					post.Parent,
-					post.Thread,
-					post.Forum,
-					post.Author,
-					now,
-					post.Message,
-			).Scan(
-				&post.Id,
-				&post.Created,
-			)
+		queryPosts += fmt.Sprintf(
+			postInserterTmpl, post.Parent, post.Thread, post.Forum, post.Author, now, post.Message, post.Parent)
+		queryForumUsers += fmt.Sprintf(forumUserInserterTmpl, post.Forum, post.Author)
 
-		if err != nil {
-			return nil, err // 500
+		if idx != postsCount - 1 {
+			queryPosts += ", "
+			queryForumUsers += ", "
 		}
-
-		// there's trigger on_new_thread_inserted
-		_, _ = p.DB.Exec("INSERT INTO forum_users(forum, nickname) VALUES($1, $2)",
-			post.Forum,
-			post.Author,
-		)
 	}
 
-	_, err = p.DB.Exec("UPDATE forums SET posts = posts + $1 WHERE slug = $2",
-		len(posts),
-		thread.Forum,
-	)
+	queryPosts += "\nRETURNING id"
+	queryForumUsers += "\nON CONFLICT DO NOTHING"
+
+	ctx := context.Background()
+	tx, err := p.DB.BeginTx(ctx, nil)
 
 	if err != nil {
 		return nil, errors.New("500") // 500
 	}
+	defer tx.Rollback()
+
+	rows, err := tx.QueryContext(ctx, queryPosts)
+	if err != nil {
+		return nil, errors.New("500") // 500
+	}
+
+	i := 0
+	for rows.Next() {
+		err = rows.Scan(&posts[i].Id)
+		if err != nil {
+			return nil, err // 500
+		}
+		i++
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, err // 500
+	}
+
+	tx.ExecContext(
+		ctx,
+		`UPDATE forums
+		 SET posts = posts + $1
+		 WHERE slug = $2`,
+		len(posts),
+		thread.Forum,
+	)
+
+	if _, err := tx.ExecContext(ctx, queryForumUsers); err != nil {
+		return nil, err
+	}
+
+	tx.Commit()
+
+	////now := time.Now()
+	//for _, post := range posts {
+	//	//post.Created = now
+	//	err = p.DB.QueryRow(
+	//			"INSERT INTO posts (parent, thread, forum, author, created, message, path) " +
+	//				"VALUES ($1, $2, $3, $4, $5, $6, " +
+	//				"(SELECT path FROM posts WHERE id = $1) || " +
+	//				"currval(pg_get_serial_sequence('posts', 'id'))::bigint) " +
+	//				"RETURNING id, created ",
+	//				post.Parent,
+	//				post.Thread,
+	//				post.Forum,
+	//				post.Author,
+	//				now,
+	//				post.Message,
+	//		).Scan(
+	//			&post.Id,
+	//			&post.Created,
+	//		)
+	//
+	//	if err != nil {
+	//		return nil, err // 500
+	//	}
+	//
+	//	// there's trigger on_new_thread_inserted
+	//	_, _ = p.DB.Exec("INSERT INTO forum_users(forum, nickname) VALUES($1, $2)",
+	//		post.Forum,
+	//		post.Author,
+	//	)
+	//}
+	//
+	//_, err = p.DB.Exec("UPDATE forums SET posts = posts + $1 WHERE slug = $2",
+	//	len(posts),
+	//	thread.Forum,
+	//)
+
+	//if err != nil {
+	//	return nil, errors.New("500") // 500
+	//}
 
 	return posts, nil
 }
