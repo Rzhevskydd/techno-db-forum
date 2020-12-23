@@ -48,20 +48,30 @@ func (p *PostRepository) setAuthor(author string) error {
 
 func (p *PostRepository) Create(thread *models.Thread, posts models.Posts) (models.Posts, error) {
 	var err error
-
 	postInserterTmpl := `(
+						nextval('posts_id_seq'::regclass),
 						'%d',
 						'%d',
 						'%s',
 						'%s',
 						'%s',
 						'%s',
-						(SELECT path FROM posts WHERE id = %d) || currval(pg_get_serial_sequence('posts', 'id'))::bigint
+						array_append((SELECT path FROM posts WHERE id = %d), (SELECT last_value FROM posts_id_seq))
 	)`
+	//postInserterTmpl := `(
+	//					'%d',
+	//					'%d',
+	//					'%s',
+	//					'%s',
+	//					'%s',
+	//					'%s',
+	//					array_append((SELECT path FROM posts WHERE id = %d), (SELECT last_value FROM posts_id_seq))
+	//)`
 
 	forumUserInserterTmpl := "('%s', '%s')"
 
-	queryPosts := "INSERT INTO posts(parent, thread, forum, author, created, message, path) VALUES "
+	queryPosts := "INSERT INTO posts(id, parent, thread, forum, author, created, message, path) VALUES "
+	//queryPosts := "INSERT INTO posts(parent, thread, forum, author, created, message, path) VALUES "
 	queryForumUsers := "INSERT INTO forum_users(forum, nickname) VALUES "
 
 	postsCount := len(posts)
@@ -98,7 +108,7 @@ func (p *PostRepository) Create(thread *models.Thread, posts models.Posts) (mode
 		}
 	}
 
-	queryPosts += "\nRETURNING id"
+	queryPosts += " RETURNING id "
 	queryForumUsers += "\nON CONFLICT DO NOTHING"
 
 	ctx := context.Background()
@@ -111,6 +121,7 @@ func (p *PostRepository) Create(thread *models.Thread, posts models.Posts) (mode
 
 	rows, err := tx.QueryContext(ctx, queryPosts)
 	if err != nil {
+		println(err.Error())
 		return nil, errors.New("500") // 500
 	}
 

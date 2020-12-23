@@ -10,6 +10,7 @@ func main() {
 		Port:   "5000",
 		Addr:   "",
 		DbHost: "localhost",
+		//DbName: "forum_func",
 		DbName: "forum",
 		DbPort: "5432",
 		DbUser: "forum",

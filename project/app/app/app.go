@@ -6,15 +6,17 @@ import (
 	"fmt"
 	"github.com/Rzhevskydd/techno-db-forum/project/app/units"
 	forumDelivery "github.com/Rzhevskydd/techno-db-forum/project/app/units/forum/delivery"
-	threadDelivery "github.com/Rzhevskydd/techno-db-forum/project/app/units/thread/delivery"
-	userDelivery "github.com/Rzhevskydd/techno-db-forum/project/app/units/user/delivery"
 	postDelivery "github.com/Rzhevskydd/techno-db-forum/project/app/units/post/delivery"
 	serviceDelivery "github.com/Rzhevskydd/techno-db-forum/project/app/units/service/delivery"
+	threadDelivery "github.com/Rzhevskydd/techno-db-forum/project/app/units/thread/delivery"
+	userDelivery "github.com/Rzhevskydd/techno-db-forum/project/app/units/user/delivery"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -35,6 +37,10 @@ type App struct {
 	DB     *sql.DB
 }
 
+func LogRequestsMiddleware(h http.Handler) http.Handler {
+	return handlers.LoggingHandler(os.Stdout,h)
+}
+
 func (a *App) Initialize(cfg Config) {
 	var err error
 	err = a.initializeDatabase(cfg)
@@ -43,6 +49,7 @@ func (a *App) Initialize(cfg Config) {
 	}
 
 	a.Router = mux.NewRouter().PathPrefix(ApiPrefix).Subrouter()
+	a.Router.Use(LogRequestsMiddleware)
 
 	a.initializeApplication()
 }

@@ -253,7 +253,7 @@ func (t *ThreadRepository) getFlatSortedRows(id int32, order, sincePost, limit, 
 	if sincePost != "" {
 		query += fmt.Sprintf(" AND id %s %s", sortSign, sincePost)
 	}
-	query += fmt.Sprintf("ORDER BY created %s, id %s LIMIT %s", order, order, limit)
+	query += fmt.Sprintf("ORDER BY id %s LIMIT %s", order, limit)
 
 	sortedRows, err = t.DB.Query(query, id)
 	return sortedRows, err
@@ -264,7 +264,8 @@ func (t *ThreadRepository) getTreeSortedRows(id int32, order, sincePost, limit, 
 	if sincePost != "" {
 		query += fmt.Sprintf(" AND path %s (SELECT path FROM posts WHERE id = %s)", sortSign, sincePost)
 	}
-	query += fmt.Sprintf("ORDER BY path[1] %s, path %s LIMIT %s", order, order, limit)
+	//query += fmt.Sprintf("ORDER BY path[1] %s, path %s LIMIT %s", order, order, limit)
+	query += fmt.Sprintf("ORDER BY path %s LIMIT %s", order, limit)
 
 	sortedRows, err = t.DB.Query(query, id)
 	return sortedRows, err
@@ -274,10 +275,10 @@ func (t *ThreadRepository) getParentTreeSortedRows(id int32, order, sincePost, l
 	query := "SELECT id, parent, thread, forum, author, message, created, is_edited FROM posts WHERE thread = $1 " +
 		"AND path[1] IN (SELECT path[1] FROM posts WHERE thread = $1 AND array_length(path, 1) = 1 "
 	if sincePost != "" {
-		query += fmt.Sprintf(" AND path %s (SELECT path[1:1] FROM posts WHERE id = %s) ", sortSign, sincePost)
+		query += fmt.Sprintf(" AND path[1] %s (SELECT path[1] FROM posts WHERE id = %s) ", sortSign, sincePost)
 	}
-	query += fmt.Sprintf(" ORDER BY path[1] %s, path %s LIMIT %s) ", order, order, limit)
-	query += fmt.Sprintf(" ORDER BY path[1] %s, path ", order)
+	query += fmt.Sprintf(" ORDER BY path[1] %s LIMIT %s) ",  order, limit)
+	query += fmt.Sprintf(" ORDER BY path[1] %s, path[2:] ", order)
 
 	sortedRows, err = t.DB.Query(query, id)
 	return sortedRows, err
