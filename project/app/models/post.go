@@ -26,5 +26,3 @@ type PostRelatedFields struct {
 	WithForum bool
 	WithThread bool
 }
-
-type Posts []*Post

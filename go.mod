@@ -8,6 +8,7 @@ require (
 	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.8.0
 	github.com/lib/pq v1.8.0
+	github.com/mailru/easyjson v0.7.6
 	github.com/mitchellh/mapstructure v1.4.0 // indirect
 	go.mongodb.org/mongo-driver v1.4.4 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect

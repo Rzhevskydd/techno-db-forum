@@ -7,6 +7,7 @@ import (
 	t "github.com/Rzhevskydd/techno-db-forum/project/app/units/thread/usecase"
 	"github.com/Rzhevskydd/techno-db-forum/project/app/utils/delivery"
 	"github.com/gorilla/mux"
+	"github.com/mailru/easyjson"
 	"net/http"
 )
 
@@ -30,14 +31,16 @@ func (api *ApiThreadHandler) HandleCreatePosts(w http.ResponseWriter, r *http.Re
 
 	vars := mux.Vars(r)
 
-	in := new(models.Posts)
-	if err := json.NewDecoder(r.Body).Decode(in); err != nil {
+	in := models.Posts{}
+	//in := new(models.Posts)
+	//if err := json.NewDecoder(r.Body).Decode(in); err != nil {
+	if err := easyjson.UnmarshalFromReader(r.Body, &in); err != nil {
 		delivery.NewError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	slugOrId := vars["slug_or_id"]
-	posts, code, _ := api.Thread.CreateThreadPosts(slugOrId, *in)
+	posts, code, _ := api.Thread.CreateThreadPosts(slugOrId, in)
 
 	switch code {
 	case 201:
